@@ -1,11 +1,15 @@
-// import { take, call, put, select } from 'redux-saga/effects';
+import { call, put } from 'redux-saga/effects';
+import { updateServices } from './actions';
 
-// Individual exports for testing
-export function* defaultSaga() {
-  // See example in containers/HomePage/sagas.js
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// All sagas to be loaded
-export default [
-  defaultSaga,
-];
+function getServices() {
+  return delay(2000).then(() => ({ foo: 'bar' }));
+}
+
+export default function* servicesSaga() {
+  const services = yield call(getServices);
+  yield put(updateServices(services));
+}

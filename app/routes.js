@@ -4,6 +4,7 @@
 // about the code splitting business
 import { getAsyncInjectors } from './utils/asyncInjectors';
 import routesSaga from './routes/sagas';
+import servicesSaga from './containers/Dashboard/sagas';
 
 const errorLoading = (err) => {
   console.error('Dynamic page loading failed', err); // eslint-disable-line no-console
@@ -17,9 +18,7 @@ export default function createRoutes(store) {
   // create reusable async injectors using getAsyncInjectors factory
   const { injectReducer, injectSagas } = getAsyncInjectors(store);
 
-  injectSagas([routesSaga]);
-
-  return [
+  const routes = [
     {
       path: '/',
       name: 'home',
@@ -55,20 +54,21 @@ export default function createRoutes(store) {
       getComponent(nextState, cb) {
         const importModules = Promise.all([
           import('containers/Dashboard/reducer'),
-          import('containers/Dashboard/sagas'),
+          // import('containers/Dashboard/sagas'),
           import('containers/Dashboard'),
         ]);
 
         const renderRoute = loadModule(cb);
 
-        importModules.then(([reducer, sagas, component]) => {
+        importModules.then(([reducer, component]) => {
           injectReducer('dashboard', reducer.default);
-          injectSagas(sagas.default);
+          // injectSagas(sagas.default);
           renderRoute(component);
         });
 
         importModules.catch(errorLoading);
       },
+      saga: servicesSaga,
     }, {
       path: '*',
       name: 'notfound',
@@ -79,4 +79,19 @@ export default function createRoutes(store) {
       },
     },
   ];
+
+  const sagaRoutes = routes.reduce((memo, route) => {
+    if (route.saga) {
+      return {
+        ...memo,
+        [route.path]: route.saga,
+      };
+    }
+
+    return memo;
+  }, {});
+
+  injectSagas([routesSaga(sagaRoutes)]);
+
+  return routes;
 }
